@@ -4,6 +4,10 @@ import os
 
 app = Flask(__name__)
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 csv_path = 'data/points.csv'
 fieldnames = ['latitude', 'longitude']
 
@@ -13,9 +17,7 @@ def create_csv():
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+
 
 @app.route('/add_point', methods=['POST'])
 def add_point():
@@ -29,3 +31,6 @@ def add_point():
         writer.writerow({'latitude': latitude, 'longitude': longitude})
 
     return 'Ponto adicionado com sucesso!'
+
+if __name__ == '__main__':
+    app.run()
