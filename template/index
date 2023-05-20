@@ -3,43 +3,47 @@
 <head>
     <meta charset="utf-8">
     <title>Visualização de Pontos de Interesse</title>
+    <link rel = "stylesheet" href = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
 </head>
 <body>
-    <div id = "map" style = "width: 900px; height: 580px"></div>
+   <div id = "map" style = "width: 900px; height: 580px"></div>
+<script src = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+   <script>
+      // Posicionando o mapa inicial
+      var mapOptions = {
+         center: [-23.5505, -46.6333],
+         zoom: 10
+      }
+      
+  // Criando um layer de pontos
+  var map = new L.map('map', mapOptions);
+  
+  // adicionando um objeto ao ponto
+  var layer = new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+  
+  // Plotando no mapa
+  map.addLayer(layer);
 
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script>
-        var latitude = -23.5505;
-        var longitude = -46.6333;
-        var zoom = 5;
+  function onMapClick(e) {
+     var clickedLatLng = e.latlng;
+     var latitude = clickedLatLng.lat;
+     var longitude = clickedLatLng.lng;
 
-        var map = L.map('map').setView([latitude, longitude], zoom);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
-            maxZoom: 18
-        }).addTo(map);
-
-        function onMapClick(e) {
-    var clickedLatLng = e.latlng;
-    var latitude = clickedLatLng.lat;
-    var longitude = clickedLatLng.lng;
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/add_point', true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.onreadystatechange = function() {
+     var xhr = new XMLHttpRequest();
+     xhr.open('POST', '/add_point', true);
+     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+     xhr.onreadystatechange = function() {
         if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-            console.log(xhr.responseText);
+           console.log(xhr.responseText);
         }
-    };
-    xhr.send('latitude=' + latitude + '&longitude=' + longitude);
+     };
+     xhr.send('latitude=' + latitude + '&longitude=' + longitude);
 
-    var clickedMarker = L.marker(clickedLatLng).addTo(map);
-}
+     var clickedMarker = L.marker(clickedLatLng).addTo(map);
+  }
 
+  map.on('click', onMapClick);
 
-        map.on('click', onMapClick);
     </script>
 </body>
 </html>
