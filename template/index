@@ -158,7 +158,7 @@
                 map.removeLayer(osmLayer);
                 map.addLayer(satelliteLayer);
                 currentLayer = satelliteLayer;
-                document.getElementById('thumbnail-image').src = 'https://{s}.tile.openstreetmap.org/0/0/0.png'; // Miniatura do OSM
+                document.getElementById('thumbnail-image').src = 'https://tile.openstreetmap.org/0/0/0.png'; // Miniatura do OSM
             } else {
                 map.removeLayer(satelliteLayer);
                 map.addLayer(osmLayer);
