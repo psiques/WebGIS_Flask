@@ -23,7 +23,7 @@ Este é um projeto simples utilizando Flask para gerenciar pontos geográficos a
    
 2. Instale as dependências:
    ```bash
-   pip install -r requirements.txt
+   pip install -r flask
 
 4. Execute o servidor Flask:
    ```bash
