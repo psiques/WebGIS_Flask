@@ -18,7 +18,7 @@ Este é um projeto simples utilizando Flask para gerenciar pontos geográficos a
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/flask-geojson-point-manager.git
+   git clone https://github.com/psiques/WebGis_Flask.git
    cd flask-geojson-point-manager
    
 2. Instale as dependências:
