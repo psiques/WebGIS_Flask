@@ -16,7 +16,7 @@
         #map {
             flex: 3;
             height: 100%;
-            position: relative; /* Para posicionar a miniatura dentro do mapa */
+            position: relative; 
         }
 
         /* Tabela de atributos */
@@ -79,17 +79,17 @@
         /* Miniatura do mapa base */
         .basemap-thumbnail {
             position: absolute;
-            bottom: 10px; /* Ajuste para ficar acima do texto de atribuição */
+            bottom: 10px;
             right: 10px;
             z-index: 1000;
-            width: 80px; /* Tamanho menor para não atrapalhar */
+            width: 80px;
             height: 80px;
             border: 2px solid white;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             cursor: pointer;
             overflow: hidden;
-            background-color: white; /* Fundo branco para destacar */
+            background-color: white; 
         }
 
         .basemap-thumbnail img {
@@ -158,12 +158,12 @@
                 map.removeLayer(osmLayer);
                 map.addLayer(satelliteLayer);
                 currentLayer = satelliteLayer;
-                document.getElementById('thumbnail-image').src = 'https://tile.openstreetmap.org/0/0/0.png'; // Miniatura do OSM
+                document.getElementById('thumbnail-image').src = 'https://tile.openstreetmap.org/0/0/0.png'; 
             } else {
                 map.removeLayer(satelliteLayer);
                 map.addLayer(osmLayer);
                 currentLayer = osmLayer;
-                document.getElementById('thumbnail-image').src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/0/0/0'; // Miniatura do Satélite
+                document.getElementById('thumbnail-image').src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/0/0/0'; 
             }
         }
 
@@ -175,7 +175,7 @@
 
         compassControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'compass-control');
-            div.innerHTML = '&#8593;'; // Símbolo de seta para cima (norte)
+            div.innerHTML = '&#8593;'; 
             div.style.fontSize = '24px';
             div.style.cursor = 'pointer';
             div.style.color = '#333';
@@ -199,7 +199,7 @@
                             <b>Observação:</b> ${feature.properties.obs}<br>
                             <button onclick="deletePoint(${feature.properties.id})">Deletar</button>
                         `);
-                        markers[feature.properties.id] = marker; // Armazenar o marcador
+                        markers[feature.properties.id] = marker; 
                     });
                 })
                 .catch(error => console.error('Erro ao carregar pontos:', error));
@@ -211,7 +211,7 @@
                 .then(response => response.json())
                 .then(data => {
                     var tableBody = document.querySelector('#points-table tbody');
-                    tableBody.innerHTML = ''; // Limpar a tabela
+                    tableBody.innerHTML = ''; 
 
                     data.features.forEach(feature => {
                         var row = document.createElement('tr');
@@ -252,18 +252,30 @@
 
         // Função para atualizar um ponto
         function updatePoint(id, field, value) {
+            // Obter os valores atuais da linha da tabela
+            var row = document.querySelector(`#points-table tbody tr td:first-child:contains('${id}')`).parentNode;
+            var name = row.querySelector('td[data-field="name"]').innerText;
+            var obs = row.querySelector('td[data-field="obs"]').innerText;
+
+            // Atualizar o valor do campo que foi editado
+            if (field === 'name') {
+                name = value;
+            } else if (field === 'obs') {
+                obs = value;
+            }
+
+            // Enviar todos os campos para o servidor
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/update_point', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
                     console.log(xhr.responseText);
-                    // Atualizar o conteúdo da célula editável
-                    var cell = document.querySelector(`#points-table tbody tr td:first-child:contains('${id}')`).parentNode.querySelector(`td[data-field="${field}"]`);
-                    cell.innerText = value;
+                    // Atualizar a tabela após a edição
+                    loadTable();
                 }
             };
-            xhr.send(`id=${id}&${field}=${encodeURIComponent(value)}`);
+            xhr.send(`id=${id}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
         }
 
         // Função para deletar um ponto
