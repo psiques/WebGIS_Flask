@@ -22,7 +22,9 @@ Este é um projeto simples utilizando Flask para gerenciar pontos geográficos a
    cd flask-geojson-point-manager
    
 2. Instale as dependências:
+   ```bash
    pip install -r requirements.txt
 
-3. Execute o servidor Flask:
+4. Execute o servidor Flask:
+   ```bash
    python app.py
