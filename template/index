@@ -3,47 +3,229 @@
 <head>
     <meta charset="utf-8">
     <title>Visualização de Pontos de Interesse</title>
-    <link rel = "stylesheet" href = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
+    <style>
+        /* Container principal */
+        #container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Mapa */
+        #map {
+            flex: 3;
+            height: 100%;
+        }
+
+        /* Tabela de atributos */
+        #attribute-table {
+            flex: 1;
+            padding: 20px;
+            background-color: #f9f9f9;
+            overflow-y: auto;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilo da tabela */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4e3535;
+        }
+
+        td[contenteditable="true"] {
+            background-color: #fff;
+        }
+
+        /* Linha destacada */
+        tr.highlighted {
+            background-color: #e0f7fa;
+        }
+
+        /* Botões */
+        button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        button:hover {
+            background-color: #cc0000;
+        }
+    </style>
 </head>
 <body>
-   <div id = "map" style = "width: 900px; height: 580px"></div>
-<script src = "http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+   <div id="container">
+      <div id="map"></div>
+      <div id="attribute-table">
+         <h3>Tabela de Atributos</h3>
+         <table id="points-table">
+            <thead>
+               <tr>
+                  <th>ID</th>
+                  <th>Nome</th>
+                  <th>Observação</th>
+                  <th>Ações</th>
+               </tr>
+            </thead>
+            <tbody>
+               <!-- Linhas serão preenchidas dinamicamente -->
+            </tbody>
+         </table>
+      </div>
+   </div>
+   <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
    <script>
+      // Variável para armazenar os marcadores
+      var markers = {};
+
       // Posicionando o mapa inicial
       var mapOptions = {
          center: [-23.5505, -46.6333],
          zoom: 10
+      };
+
+      // Criando o mapa
+      var map = new L.map('map', mapOptions);
+
+      // Adicionando um layer de tiles
+      var layer = new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+      map.addLayer(layer);
+
+      // Função para carregar os pontos no mapa
+      function loadPoints() {
+          fetch('/get_points')
+              .then(response => response.json())
+              .then(data => {
+                  data.features.forEach(feature => {
+                      var coordinates = feature.geometry.coordinates;
+                      var marker = L.marker([coordinates[1], coordinates[0]]).addTo(map);
+                      marker.bindPopup(`
+                          <b>ID:</b> ${feature.properties.id}<br>
+                          <b>Nome:</b> ${feature.properties.name}<br>
+                          <b>Observação:</b> ${feature.properties.obs}<br>
+                          <button onclick="deletePoint(${feature.properties.id})">Deletar</button>
+                      `);
+                      markers[feature.properties.id] = marker; // Armazenar o marcador
+                  });
+              })
+              .catch(error => console.error('Erro ao carregar pontos:', error));
       }
-      
-  // Criando um layer de pontos
-  var map = new L.map('map', mapOptions);
-  
-  // adicionando um objeto ao ponto
-  var layer = new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-  
-  // Plotando no mapa
-  map.addLayer(layer);
 
-  function onMapClick(e) {
-     var clickedLatLng = e.latlng;
-     var latitude = clickedLatLng.lat;
-     var longitude = clickedLatLng.lng;
+      // Função para carregar os pontos na tabela
+      function loadTable() {
+          fetch('/get_points')
+              .then(response => response.json())
+              .then(data => {
+                  var tableBody = document.querySelector('#points-table tbody');
+                  tableBody.innerHTML = ''; // Limpar a tabela
 
-     var xhr = new XMLHttpRequest();
-     xhr.open('POST', '/add_point', true);
-     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-     xhr.onreadystatechange = function() {
-        if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-           console.log(xhr.responseText);
-        }
-     };
-     xhr.send('latitude=' + latitude + '&longitude=' + longitude);
+                  data.features.forEach(feature => {
+                      var row = document.createElement('tr');
+                      row.innerHTML = `
+                          <td>${feature.properties.id}</td>
+                          <td contenteditable="true" onblur="updatePoint(${feature.properties.id}, 'name', this.innerText)">${feature.properties.name}</td>
+                          <td contenteditable="true" onblur="updatePoint(${feature.properties.id}, 'obs', this.innerText)">${feature.properties.obs}</td>
+                          <td><button onclick="deletePoint(${feature.properties.id})">Deletar</button></td>
+                      `;
+                      row.addEventListener('click', () => highlightPoint(feature.properties.id));
+                      tableBody.appendChild(row);
+                  });
+              })
+              .catch(error => console.error('Erro ao carregar pontos:', error));
+      }
 
-     var clickedMarker = L.marker(clickedLatLng).addTo(map);
-  }
+      // Função para adicionar um novo ponto
+      function onMapClick(e) {
+          var clickedLatLng = e.latlng;
+          var latitude = clickedLatLng.lat;
+          var longitude = clickedLatLng.lng;
 
-  map.on('click', onMapClick);
+          var name = prompt("Digite o nome do ponto:");
+          var obs = prompt("Digite uma observação:");
 
-    </script>
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/add_point', true);
+          xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+          xhr.onreadystatechange = function() {
+              if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                  console.log(xhr.responseText);
+                  loadTable(); // Recarregar a tabela após adicionar
+                  loadPoints(); // Recarregar os pontos no mapa
+              }
+          };
+          xhr.send(`latitude=${latitude}&longitude=${longitude}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
+      }
+
+      // Função para atualizar um ponto
+      function updatePoint(id, field, value) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/update_point', true);
+          xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+          xhr.onreadystatechange = function() {
+              if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                  console.log(xhr.responseText);
+                  loadTable(); // Recarregar a tabela após atualizar
+                  loadPoints(); // Recarregar os pontos no mapa
+              }
+          };
+          xhr.send(`id=${id}&${field}=${encodeURIComponent(value)}`);
+      }
+
+      // Função para deletar um ponto
+      function deletePoint(id) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/delete_point', true);
+          xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+          xhr.onreadystatechange = function() {
+              if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                  console.log(xhr.responseText);
+                  loadTable(); // Recarregar a tabela após deletar
+                  loadPoints(); // Recarregar os pontos no mapa
+              }
+          };
+          xhr.send(`id=${id}`);
+      }
+
+      // Função para destacar um ponto na tabela e no mapa
+      function highlightPoint(id) {
+          // Remover destaque de todas as linhas
+          var rows = document.querySelectorAll('#points-table tbody tr');
+          rows.forEach(row => row.classList.remove('highlighted'));
+
+          // Destacar a linha clicada
+          var row = document.querySelector(`#points-table tbody tr td:first-child:contains('${id}')`).parentNode;
+          row.classList.add('highlighted');
+
+          // Centralizar o mapa no ponto
+          if (markers[id]) {
+              map.setView(markers[id].getLatLng(), 15);
+              markers[id].openPopup();
+          }
+      }
+
+      // Carregar tabela e pontos ao iniciar
+      document.addEventListener('DOMContentLoaded', function() {
+          loadPoints();
+          loadTable();
+      });
+
+      // Adicionar evento de clique no mapa
+      map.on('click', onMapClick);
+   </script>
 </body>
 </html>
