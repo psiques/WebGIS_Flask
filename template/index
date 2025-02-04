@@ -23,20 +23,20 @@
 
         /* Aba lateral */
         #sidebar {
-            width: 300px; 
+            width: 300px; /* Largura da aba */
             height: 100%;
             background-color: #f9f9f9;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
             position: absolute;
-            right: -300px; 
+            right: -300px; /* Esconde a aba */
             transition: right 0.3s ease;
             z-index: 1000;
         }
 
-        /* Puxador */
+        /* Puxador  */
         #sidebar-handle {
             position: absolute;
-            left: -20px; 
+            left: -20px; /* Posiciona o puxador à esquerda da aba */
             top: 50%;
             transform: translateY(-50%);
             width: 20px;
@@ -53,7 +53,7 @@
 
         /* Seta no puxador */
         #sidebar-handle::after {
-            content: '◀'; 
+            content: '◀'; /* Seta para a esquerda */
             transition: transform 0.3s ease;
         }
 
@@ -66,7 +66,7 @@
         #attribute-table {
             padding: 20px;
             overflow-y: auto;
-            height: calc(100% - 40px); 
+            height: calc(100% - 40px); /* Ajuste para o padding */
         }
 
         /* Estilo da tabela */
@@ -77,17 +77,14 @@
         }
 
         th, td {
+            font-size: 14px;
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 6px;
             text-align: left;
         }
 
         th {
             background-color: #f1ebeb;
-        }
-
-        td[contenteditable="true"] {
-            background-color: #fff;
         }
 
         /* Linha destacada */
@@ -100,7 +97,7 @@
             background-color: #ff4d4d;
             color: white;
             border: none;
-            padding: 5px 10px;
+            padding: 2px 4px;
             cursor: pointer;
             border-radius: 3px;
         }
@@ -131,6 +128,37 @@
             object-fit: cover;
         }
 
+        /* Thumbnail de seleção de geometria */
+        .geometry-thumbnail {
+            position: absolute;
+            bottom: 100px; 
+            right: 10px;
+            z-index: 1000;
+            width: 80px;
+            background-color: white;
+            border: 2px solid white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            padding: 5px;
+        }
+
+        .geometry-thumbnail button {
+            display: block;
+            width: 100%;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        .geometry-thumbnail button:hover {
+            background-color: #ddd;
+        }
+
         /* Estilo da bússola */
         .compass-control {
             background: rgba(255, 255, 255, 0.8);
@@ -152,11 +180,18 @@
             <div id="basemap-thumbnail" class="basemap-thumbnail">
                 <img id="thumbnail-image" src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/0/0/0" alt="Alternar Mapa Base">
             </div>
+
+            <!-- Thumbnail de seleção de geometria -->
+            <div class="geometry-thumbnail">
+                <button onclick="setDrawingMode('point')">📍 Ponto</button>
+                <button onclick="setDrawingMode('line')">🖍️ Linha</button>
+                <button onclick="setDrawingMode('polygon')">🔲 Polígono</button>
+            </div>
         </div>
 
         <!-- Aba lateral -->
         <div id="sidebar">
-            <!-- Puxador -->
+            <!-- Puxador  -->
             <div id="sidebar-handle" onclick="toggleSidebar()"></div>
             <!-- Tabela de atributos -->
             <div id="attribute-table">
@@ -182,6 +217,13 @@
     <script>
         // Variável para armazenar os marcadores
         var markers = {};
+        var lines = {};
+        var polygons = {};
+
+        // Modo de desenho atual
+        var drawingMode = null; // Pode ser 'point', 'line' ou 'polygon'
+        var currentLine = null; // Linha em construção
+        var currentPolygon = null; // Polígono em construção
 
         // Posicionando o mapa inicial
         var mapOptions = {
@@ -245,40 +287,86 @@
             if (sidebar.style.right === '0px') {
                 sidebar.style.right = '-300px'; // Fecha a aba
                 mapDiv.style.marginRight = '0';
-                sidebar.setAttribute('data-open', 'false'); 
+                sidebar.setAttribute('data-open', 'false'); // Atualiza o estado da aba
             } else {
                 sidebar.style.right = '0px'; // Abre a aba
                 mapDiv.style.marginRight = '300px';
-                sidebar.setAttribute('data-open', 'true'); 
+                sidebar.setAttribute('data-open', 'true'); // Atualiza o estado da aba
             }
+        }
+
+        // Função para definir o modo de desenho
+        function setDrawingMode(mode) {
+            drawingMode = mode;
+            alert(`Modo de desenho: ${mode}`);
         }
 
         // Função para adicionar um novo ponto
         function onMapClick(e) {
-            var clickedLatLng = e.latlng;
-            var latitude = clickedLatLng.lat;
-            var longitude = clickedLatLng.lng;
+            if (drawingMode === 'point') {
+                var clickedLatLng = e.latlng;
+                var latitude = clickedLatLng.lat;
+                var longitude = clickedLatLng.lng;
 
-            var name = prompt("Digite o nome do ponto:");
-            if (name === null || name.trim() === "") {
-                alert("O nome do ponto é obrigatório!");
-                return;
-            }
-
-            var obs = prompt("Digite uma observação:");
-            if (obs === null) obs = ""; 
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/add_point', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                    console.log(xhr.responseText);
-                    loadTable(); 
-                    loadPoints(); 
+                var name = prompt("Digite o nome do ponto:");
+                if (name === null || name.trim() === "") {
+                    alert("O nome do ponto é obrigatório!");
+                    return;
                 }
-            };
-            xhr.send(`latitude=${latitude}&longitude=${longitude}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
+
+                var obs = prompt("Digite uma observação:");
+                if (obs === null) obs = ""; // Observação é opcional
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/add_point', true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                        console.log(xhr.responseText);
+                        loadTable(); // Recarregar a tabela após adicionar
+                        loadPoints(); // Recarregar os pontos no mapa
+                    }
+                };
+                xhr.send(`latitude=${latitude}&longitude=${longitude}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
+            } else if (drawingMode === 'line') {
+                if (!currentLine) {
+                    currentLine = L.polyline([e.latlng], { color: 'blue' }).addTo(map);
+                } else {
+                    currentLine.addLatLng(e.latlng);
+                }
+            } else if (drawingMode === 'polygon') {
+                if (!currentPolygon) {
+                    currentPolygon = L.polygon([e.latlng], { color: 'green' }).addTo(map);
+                } else {
+                    currentPolygon.addLatLng(e.latlng);
+                }
+            }
+        }
+
+        // Função para carregar os pontos na tabela
+        function loadTable() {
+            fetch('/get_points')
+                .then(response => response.json())
+                .then(data => {
+                    var tableBody = document.querySelector('#points-table tbody');
+                    tableBody.innerHTML = ''; // Limpa a tabela
+
+                    data.features.forEach(feature => {
+                        var row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${feature.properties.id}</td>
+                            <td>${feature.properties.name}</td>
+                            <td>${feature.properties.obs}</td>
+                            <td>
+                                <button onclick="editPoint(${feature.properties.id})">Editar</button>
+                                <button onclick="deletePoint(${feature.properties.id})">Deletar</button>
+                            </td>
+                        `;
+                        row.addEventListener('click', () => highlightPoint(feature.properties.id));
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Erro ao carregar pontos:', error));
         }
 
         // Função para carregar os pontos no mapa
@@ -301,31 +389,17 @@
                 .catch(error => console.error('Erro ao carregar pontos:', error));
         }
 
-        // Função para carregar os pontos na tabela
-        function loadTable() {
-            fetch('/get_points')
-                .then(response => response.json())
-                .then(data => {
-                    var tableBody = document.querySelector('#points-table tbody');
-                    tableBody.innerHTML = ''; // Limpar a tabela
+        // Função para editar um ponto
+        function editPoint(id) {
+            var name = prompt("Digite o novo nome do ponto:");
+            if (name === null || name.trim() === "") {
+                alert("O nome do ponto é obrigatório!");
+                return;
+            }
 
-                    data.features.forEach(feature => {
-                        var row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${feature.properties.id}</td>
-                            <td contenteditable="true" data-field="name" onblur="updatePoint(${feature.properties.id}, 'name', this.innerText)">${feature.properties.name}</td>
-                            <td contenteditable="true" data-field="obs" onblur="updatePoint(${feature.properties.id}, 'obs', this.innerText)">${feature.properties.obs}</td>
-                            <td><button onclick="deletePoint(${feature.properties.id})">Deletar</button></td>
-                        `;
-                        row.addEventListener('click', () => highlightPoint(feature.properties.id));
-                        tableBody.appendChild(row);
-                    });
-                })
-                .catch(error => console.error('Erro ao carregar pontos:', error));
-        }
+            var obs = prompt("Digite uma nova observação:");
+            if (obs === null) obs = ""; // Observação é opcional
 
-        // Função para atualizar um ponto
-        function updatePoint(id, field, value) {
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/update_point', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -336,7 +410,7 @@
                     loadPoints(); // Recarregar os pontos no mapa
                 }
             };
-            xhr.send(`id=${id}&${field}=${encodeURIComponent(value)}`);
+            xhr.send(`id=${id}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
         }
 
         // Função para deletar um ponto
