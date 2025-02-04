@@ -10,22 +10,63 @@
             display: flex;
             width: 100%;
             height: 100vh;
+            position: relative;
+            overflow: hidden;
         }
 
         /* Mapa */
         #map {
-            flex: 3;
+            flex: 1;
             height: 100%;
-            position: relative; 
+            transition: margin-right 0.3s ease;
+        }
+
+        /* Aba lateral */
+        #sidebar {
+            width: 300px; 
+            height: 100%;
+            background-color: #f9f9f9;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            right: -300px; 
+            transition: right 0.3s ease;
+            z-index: 1000;
+        }
+
+        /* Puxador */
+        #sidebar-handle {
+            position: absolute;
+            left: -20px; 
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 60px;
+            background-color: #ff4d4d;
+            border-radius: 5px 0 0 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* Seta no puxador */
+        #sidebar-handle::after {
+            content: '◀'; 
+            transition: transform 0.3s ease;
+        }
+
+        /* Inverte a seta quando a aba está aberta */
+        #sidebar[data-open="true"] #sidebar-handle::after {
+            transform: rotate(180deg);
         }
 
         /* Tabela de atributos */
         #attribute-table {
-            flex: 1;
             padding: 20px;
-            background-color: #f9f9f9;
             overflow-y: auto;
-            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            height: calc(100% - 40px); 
         }
 
         /* Estilo da tabela */
@@ -68,14 +109,6 @@
             background-color: #cc0000;
         }
 
-        /* Estilo da bússola */
-        .compass-control {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 5px;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-        }
-
         /* Miniatura do mapa base */
         .basemap-thumbnail {
             position: absolute;
@@ -89,7 +122,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             cursor: pointer;
             overflow: hidden;
-            background-color: white; 
+            background-color: white;
         }
 
         .basemap-thumbnail img {
@@ -97,31 +130,51 @@
             height: 100%;
             object-fit: cover;
         }
+
+        /* Estilo da bússola */
+        .compass-control {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            font-size: 24px;
+            cursor: pointer;
+            color: #333;
+            text-shadow: 0 0 3px white;
+        }
     </style>
 </head>
 <body>
     <div id="container">
+        <!-- Mapa -->
         <div id="map">
             <!-- Miniatura do mapa base -->
             <div id="basemap-thumbnail" class="basemap-thumbnail">
                 <img id="thumbnail-image" src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/0/0/0" alt="Alternar Mapa Base">
             </div>
         </div>
-        <div id="attribute-table">
-            <h3>Tabela de Atributos</h3>
-            <table id="points-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nome</th>
-                        <th>Observação</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Linhas serão preenchidas dinamicamente -->
-                </tbody>
-            </table>
+
+        <!-- Aba lateral -->
+        <div id="sidebar">
+            <!-- Puxador -->
+            <div id="sidebar-handle" onclick="toggleSidebar()"></div>
+            <!-- Tabela de atributos -->
+            <div id="attribute-table">
+                <h3>Tabela de Atributos</h3>
+                <table id="points-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Observação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas serão preenchidas dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -140,7 +193,7 @@
         var map = new L.map('map', mapOptions);
 
         // Definindo camadas de mapa base
-        var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         });
 
@@ -152,21 +205,6 @@
         osmLayer.addTo(map);
         var currentLayer = osmLayer;
 
-        // Função para alternar o mapa base
-        function toggleBasemap() {
-            if (map.hasLayer(osmLayer)) {
-                map.removeLayer(osmLayer);
-                map.addLayer(satelliteLayer);
-                currentLayer = satelliteLayer;
-                document.getElementById('thumbnail-image').src = 'https://tile.openstreetmap.org/0/0/0.png'; 
-            } else {
-                map.removeLayer(satelliteLayer);
-                map.addLayer(osmLayer);
-                currentLayer = osmLayer;
-                document.getElementById('thumbnail-image').src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/0/0/0'; 
-            }
-        }
-
         // Adicionar escala ao mapa
         L.control.scale().addTo(map);
 
@@ -175,7 +213,7 @@
 
         compassControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'compass-control');
-            div.innerHTML = '&#8593;'; 
+            div.innerHTML = '&#8593;'; // Símbolo de seta para cima (norte)
             div.style.fontSize = '24px';
             div.style.cursor = 'pointer';
             div.style.color = '#333';
@@ -184,6 +222,64 @@
         };
 
         compassControl.addTo(map);
+
+        // Função para alternar o mapa base
+        function toggleBasemap() {
+            if (map.hasLayer(osmLayer)) {
+                map.removeLayer(osmLayer);
+                map.addLayer(satelliteLayer);
+                currentLayer = satelliteLayer;
+                document.getElementById('thumbnail-image').src = 'https://tile.openstreetmap.org/0/0/0.png'; // Miniatura do OSM
+            } else {
+                map.removeLayer(satelliteLayer);
+                map.addLayer(osmLayer);
+                currentLayer = osmLayer;
+                document.getElementById('thumbnail-image').src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/0/0/0'; // Miniatura do Satélite
+            }
+        }
+
+        // Função para abrir/fechar a aba lateral
+        function toggleSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var mapDiv = document.getElementById('map');
+            if (sidebar.style.right === '0px') {
+                sidebar.style.right = '-300px'; // Fecha a aba
+                mapDiv.style.marginRight = '0';
+                sidebar.setAttribute('data-open', 'false'); 
+            } else {
+                sidebar.style.right = '0px'; // Abre a aba
+                mapDiv.style.marginRight = '300px';
+                sidebar.setAttribute('data-open', 'true'); 
+            }
+        }
+
+        // Função para adicionar um novo ponto
+        function onMapClick(e) {
+            var clickedLatLng = e.latlng;
+            var latitude = clickedLatLng.lat;
+            var longitude = clickedLatLng.lng;
+
+            var name = prompt("Digite o nome do ponto:");
+            if (name === null || name.trim() === "") {
+                alert("O nome do ponto é obrigatório!");
+                return;
+            }
+
+            var obs = prompt("Digite uma observação:");
+            if (obs === null) obs = ""; 
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/add_point', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                    console.log(xhr.responseText);
+                    loadTable(); 
+                    loadPoints(); 
+                }
+            };
+            xhr.send(`latitude=${latitude}&longitude=${longitude}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
+        }
 
         // Função para carregar os pontos no mapa
         function loadPoints() {
@@ -199,7 +295,7 @@
                             <b>Observação:</b> ${feature.properties.obs}<br>
                             <button onclick="deletePoint(${feature.properties.id})">Deletar</button>
                         `);
-                        markers[feature.properties.id] = marker; 
+                        markers[feature.properties.id] = marker; // Armazenar o marcador
                     });
                 })
                 .catch(error => console.error('Erro ao carregar pontos:', error));
@@ -211,7 +307,7 @@
                 .then(response => response.json())
                 .then(data => {
                     var tableBody = document.querySelector('#points-table tbody');
-                    tableBody.innerHTML = ''; 
+                    tableBody.innerHTML = ''; // Limpar a tabela
 
                     data.features.forEach(feature => {
                         var row = document.createElement('tr');
@@ -228,54 +324,19 @@
                 .catch(error => console.error('Erro ao carregar pontos:', error));
         }
 
-        // Função para adicionar um novo ponto
-        function onMapClick(e) {
-            var clickedLatLng = e.latlng;
-            var latitude = clickedLatLng.lat;
-            var longitude = clickedLatLng.lng;
-
-            var name = prompt("Digite o nome do ponto:");
-            var obs = prompt("Digite uma observação:");
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/add_point', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                    console.log(xhr.responseText);
-                    loadTable(); // Recarregar a tabela após adicionar
-                    loadPoints(); // Recarregar os pontos no mapa
-                }
-            };
-            xhr.send(`latitude=${latitude}&longitude=${longitude}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
-        }
-
         // Função para atualizar um ponto
         function updatePoint(id, field, value) {
-            // Obter os valores atuais da linha da tabela
-            var row = document.querySelector(`#points-table tbody tr td:first-child:contains('${id}')`).parentNode;
-            var name = row.querySelector('td[data-field="name"]').innerText;
-            var obs = row.querySelector('td[data-field="obs"]').innerText;
-
-            // Atualizar o valor do campo que foi editado
-            if (field === 'name') {
-                name = value;
-            } else if (field === 'obs') {
-                obs = value;
-            }
-
-            // Enviar todos os campos para o servidor
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/update_point', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
                     console.log(xhr.responseText);
-                    // Atualizar a tabela após a edição
-                    loadTable();
+                    loadTable(); // Recarregar a tabela após a atualização
+                    loadPoints(); // Recarregar os pontos no mapa
                 }
             };
-            xhr.send(`id=${id}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`);
+            xhr.send(`id=${id}&${field}=${encodeURIComponent(value)}`);
         }
 
         // Função para deletar um ponto
