@@ -50,6 +50,12 @@
             color: white;
             font-size: 18px;
         }
+        #attribute-table h3 {
+            font-size: 16px; /* Ajuste o tamanho da fonte */
+            font-weight: bold; /* Deixa em negrito */
+            text-align: center; /* Centraliza o texto */
+            margin-bottom: 8px; /* Reduz o espaçamento inferior */
+        }
         #attribute-table {
             padding: 20px;
             overflow-y: auto;
@@ -61,7 +67,7 @@
             margin-bottom: 20px;
         }
         th, td {
-            font-size: 14px;
+            font-size: 10px;
             padding: 8px;
             text-align: left;
             border-bottom: 1px solid #ddd;
@@ -276,6 +282,17 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `coordinates=${JSON.stringify(formattedCoordinates)}`
             });
+            const newFeature = await response.json();
+
+            // Adiciona a linha diretamente ao mapa
+            const newLine = L.polyline(coordinates, { color: 'blue' }).addTo(map)
+                .bindPopup(`
+                    <b>ID:</b> ${Object.keys(lines).length + 1}<br>
+                    <button onclick="deleteFeature('lines-table', ${Object.keys(lines).length + 1})">Deletar</button>
+                `);
+            lines[Object.keys(lines).length + 1] = newLine;
+            addRowToTable('lines-table', newFeature);
+
             loadData();
         }
 
@@ -293,6 +310,14 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `coordinates=${JSON.stringify(polygonCoordinates)}`
             });
+
+            const newPolygon = L.polygon(coordinates, { color: 'green' }).addTo(map)
+                .bindPopup(`
+                    <b>ID:</b> ${Object.keys(polygons).length + 1}<br>
+                    <button onclick="deleteFeature('polygons-table', ${Object.keys(polygons).length + 1})">Deletar</button>
+                `);
+            polygons[Object.keys(polygons).length + 1] = newPolygon;
+
             loadData();
         }
 
@@ -309,6 +334,18 @@
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `latitude=${lat}&longitude=${lng}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`
                 });
+
+                // Adiciona o marcador diretamente ao mapa
+                const newMarker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`
+                        <b>ID:</b> ${markers.length + 1}<br>
+                        <b>Nome:</b> ${name}<br>
+                        <b>Observação:</b> ${obs}<br>
+                        <button onclick="deleteFeature('points-table', ${markers.length + 1})">Deletar</button>
+                    `);
+                markers[markers.length + 1] = newMarker;
+
+                    // Atualiza a tabela de atributos
                 loadData();
             } else if (drawingMode === 'line') {
                 if (!currentLine) {
