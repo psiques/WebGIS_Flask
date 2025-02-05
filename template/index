@@ -186,7 +186,7 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
     <script>
         const markers = {};
         const lines = {};
@@ -266,6 +266,7 @@
             }
         }
 
+        // Salvar uma linha no servidor
         async function saveLine(coordinates) {
             // Converter coordenadas de [lat, lng] para [lng, lat]
             const formattedCoordinates = coordinates.map(coord => [coord.lng, coord.lat]);
@@ -294,6 +295,7 @@
             });
             loadData();
         }
+
         // Manipular cliques no mapa
         async function onMapClick(e) {
             if (drawingMode === 'point') {
