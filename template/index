@@ -2,10 +2,16 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Visualização de Pontos de Interesse</title>
-    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>
+    <title>WebGIS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        /* Container principal */
+        /* Estilos básicos */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Helvetica, sans-serif;
+        }
         #container {
             display: flex;
             width: 100%;
@@ -13,30 +19,24 @@
             position: relative;
             overflow: hidden;
         }
-
-        /* Mapa */
         #map {
             flex: 1;
             height: 100%;
             transition: margin-right 0.3s ease;
         }
-
-        /* Aba lateral */
         #sidebar {
-            width: 300px;
+            width: 300px; /* Largura da aba */
             height: 100%;
             background-color: #f9f9f9;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
             position: absolute;
-            right: -300px;
+            right: -300px; /* Esconde a aba */
             transition: right 0.3s ease;
             z-index: 1000;
         }
-
-        /* Puxador */
         #sidebar-handle {
             position: absolute;
-            left: -20px;
+            left: -20px; 
             top: 50%;
             transform: translateY(-50%);
             width: 20px;
@@ -50,63 +50,31 @@
             color: white;
             font-size: 18px;
         }
-
-        /* Seta no puxador */
-        #sidebar-handle::after {
-            content: '◀';
-            transition: transform 0.3s ease;
-        }
-
-        /* Inverte a seta quando a aba está aberta */
-        #sidebar[data-open="true"] #sidebar-handle::after {
-            transform: rotate(180deg);
-        }
-
-        /* Tabela de atributos */
         #attribute-table {
             padding: 20px;
             overflow-y: auto;
             height: calc(100% - 40px);
         }
-
-        /* Estilo da tabela */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-bottom: 20px;
         }
-
         th, td {
             font-size: 14px;
-            border: 1px solid #ddd;
-            padding: 6px;
+            padding: 8px;
             text-align: left;
+            border-bottom: 1px solid #ddd;
         }
-
         th {
-            background-color: #f1ebeb;
+            background: #f8f8f8;
         }
-
-        /* Linha destacada */
-        tr.highlighted {
-            background-color: #e0f7fa;
+        tr:hover {
+            background: #f1f1f1;
         }
-
-        /* Botões */
-        button {
-            background-color: #ff4d4d;
-            color: white;
-            border: none;
-            padding: 2px 4px;
-            cursor: pointer;
-            border-radius: 3px;
+        .highlighted {
+            background: #d1e7ff !important;
         }
-
-        button:hover {
-            background-color: #cc0000;
-        }
-
-        /* Miniatura do mapa base */
         .basemap-thumbnail {
             position: absolute;
             bottom: 10px;
@@ -121,17 +89,14 @@
             overflow: hidden;
             background-color: white;
         }
-
         .basemap-thumbnail img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-
-        /* Thumbnail de seleção de geometria */
         .geometry-thumbnail {
             position: absolute;
-            bottom: 100px;
+            bottom: 100px; 
             right: 10px;
             z-index: 1000;
             width: 80px;
@@ -158,18 +123,6 @@
         .geometry-thumbnail button:hover {
             background-color: #ddd;
         }
-
-        /* Estilo da bússola */
-        .compass-control {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 5px;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-            font-size: 24px;
-            cursor: pointer;
-            color: #333;
-            text-shadow: 0 0 3px white;
-        }
     </style>
 </head>
 <body>
@@ -182,10 +135,10 @@
             </div>
 
             <!-- Thumbnail de seleção de geometria -->
-            <div class="geometry-thumbnail">
+            <div id="geometry-thumbnail" class="geometry-thumbnail">
                 <button onclick="setDrawingMode('point')">📍 Ponto</button>
                 <button onclick="setDrawingMode('line')">🖍️ Linha</button>
-                <button onclick="setDrawingMode('polygon')">🔲 Polígono</button>
+                <button onclick="setDrawingMode('polygon')">🔲 Área</button>
             </div>
         </div>
 
@@ -195,7 +148,7 @@
             <div id="sidebar-handle" onclick="toggleSidebar()"></div>
             <!-- Tabela de atributos -->
             <div id="attribute-table">
-                <h3>Tabela de Atributos</h3>
+                <h3>Pontos</h3>
                 <table id="points-table">
                     <thead>
                         <tr>
@@ -207,13 +160,37 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+
+                <h3>Linhas</h3>
+                <table id="lines-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <h3>Polígonos</h3>
+                <table id="polygons-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         const markers = {};
+        const lines = {};
+        const polygons = {};
         let drawingMode = null;
         let currentLine = null;
         let currentPolygon = null;
@@ -244,6 +221,7 @@
         };
         compassControl.addTo(map);
 
+        // Alternar entre mapas base
         function toggleBasemap() {
             if (map.hasLayer(osmLayer)) {
                 map.removeLayer(osmLayer);
@@ -258,6 +236,7 @@
             }
         }
 
+        // Alternar a visibilidade da barra lateral
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mapDiv = document.getElementById('map');
@@ -267,11 +246,55 @@
             sidebar.setAttribute('data-open', !isOpen);
         }
 
+        // Definir o modo de desenho
         function setDrawingMode(mode) {
             drawingMode = mode;
-            alert(`Modo de desenho: ${mode}`);
+            if (mode === 'line' || mode === 'polygon') {
+                const finishButton = document.createElement('button');
+                finishButton.innerText = 'Finalizar';
+                finishButton.onclick = () => {
+                    if (drawingMode === 'line' && currentLine) {
+                        saveLine(currentLine.getLatLngs());
+                        currentLine = null;
+                    } else if (drawingMode === 'polygon' && currentPolygon) {
+                        savePolygon(currentPolygon.getLatLngs());
+                        currentPolygon = null;
+                    }
+                    document.getElementById('geometry-thumbnail').removeChild(finishButton);
+                };
+                document.getElementById('geometry-thumbnail').appendChild(finishButton);
+            }
         }
 
+        async function saveLine(coordinates) {
+            // Converter coordenadas de [lat, lng] para [lng, lat]
+            const formattedCoordinates = coordinates.map(coord => [coord.lng, coord.lat]);
+            
+            await fetch('/add_line', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `coordinates=${JSON.stringify(formattedCoordinates)}`
+            });
+            loadData();
+        }
+
+        // Salvar um polígono no servidor
+        async function savePolygon(coordinates) {
+            const formattedCoordinates = coordinates.map(coord => [coord.lng, coord.lat]);
+            if (formattedCoordinates[0].toString() !== formattedCoordinates[formattedCoordinates.length - 1].toString()) {
+                formattedCoordinates.push(formattedCoordinates[0]);
+            }
+
+            const polygonCoordinates = [formattedCoordinates];
+
+            await fetch('/add_polygon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `coordinates=${JSON.stringify(polygonCoordinates)}`
+            });
+            loadData();
+        }
+        // Manipular cliques no mapa
         async function onMapClick(e) {
             if (drawingMode === 'point') {
                 const { lat, lng } = e.latlng;
@@ -286,36 +309,55 @@
                 });
                 loadData();
             } else if (drawingMode === 'line') {
-                if (!currentLine) currentLine = L.polyline([e.latlng], { color: 'blue' }).addTo(map);
-                else currentLine.addLatLng(e.latlng);
+                if (!currentLine) {
+                    currentLine = L.polyline([e.latlng], { color: 'blue' }).addTo(map);
+                } else {
+                    currentLine.addLatLng(e.latlng);
+                }
             } else if (drawingMode === 'polygon') {
-                if (!currentPolygon) currentPolygon = L.polygon([e.latlng], { color: 'green' }).addTo(map);
-                else currentPolygon.addLatLng(e.latlng);
+                if (!currentPolygon) {
+                    currentPolygon = L.polygon([e.latlng], { color: 'green' }).addTo(map);
+                } else {
+                    currentPolygon.addLatLng(e.latlng);
+                }
             }
         }
 
+        // Carregar dados do servidor
         async function loadData() {
-            const response = await fetch('/get_points');
-            const data = await response.json();
-            updateTable(data.features);
-            updateMarkers(data.features);
+            const pointsResponse = await fetch('/get_points');
+            const pointsData = await pointsResponse.json();
+            updateTable(pointsData.features, 'points-table', updateMarkers);
+
+            const linesResponse = await fetch('/get_lines');
+            const linesData = await linesResponse.json();
+            updateTable(linesData.features, 'lines-table', updateLines);
+
+            const polygonsResponse = await fetch('/get_polygons');
+            const polygonsData = await polygonsResponse.json();
+            updateTable(polygonsData.features, 'polygons-table', updatePolygons);
         }
 
-        function updateTable(features) {
-            const tableBody = document.querySelector('#points-table tbody');
+        // Atualizar a tabela de atributos
+        function updateTable(features, tableId, updateFunction) {
+            const tableBody = document.querySelector(`#${tableId} tbody`);
             tableBody.innerHTML = features.map(feature => `
-                <tr onclick="highlightPoint(${feature.properties.id})">
+                <tr onclick="highlightFeature('${tableId}', ${feature.properties.id})">
                     <td>${feature.properties.id}</td>
-                    <td>${feature.properties.name}</td>
-                    <td>${feature.properties.obs}</td>
+                    ${tableId === 'points-table' ? `
+                        <td>${feature.properties.name}</td>
+                        <td>${feature.properties.obs}</td>
+                    ` : ''}
                     <td>
-                        <button onclick="editPoint(${feature.properties.id})">Editar</button>
-                        <button onclick="deletePoint(${feature.properties.id})">Deletar</button>
+                        <button onclick="editFeature('${tableId}', ${feature.properties.id})">Editar</button>
+                        <button onclick="deleteFeature('${tableId}', ${feature.properties.id})">Deletar</button>
                     </td>
                 </tr>
             `).join('');
+            updateFunction(features);
         }
 
+        // Atualizar marcadores no mapa
         function updateMarkers(features) {
             Object.values(markers).forEach(marker => marker.remove());
             features.forEach(feature => {
@@ -325,53 +367,119 @@
                         <b>ID:</b> ${feature.properties.id}<br>
                         <b>Nome:</b> ${feature.properties.name}<br>
                         <b>Observação:</b> ${feature.properties.obs}<br>
-                        <button onclick="deletePoint(${feature.properties.id})">Deletar</button>
+                        <button onclick="deleteFeature('points-table', ${feature.properties.id})">Deletar</button>
                     `);
             });
         }
 
-        async function editPoint(id) {
-            const name = prompt("Digite o novo nome do ponto:");
-            if (!name?.trim()) return alert("O nome do ponto é obrigatório!");
-            const obs = prompt("Digite uma nova observação:") || "";
-
-            await fetch('/update_point', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `id=${id}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`
+        // Atualizar linhas no mapa
+        function updateLines(features) {
+            Object.values(lines).forEach(line => line.remove());
+            features.forEach(feature => {
+                const coordinates = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                lines[feature.properties.id] = L.polyline(coordinates, { color: 'blue' }).addTo(map)
+                    .bindPopup(`
+                        <b>ID:</b> ${feature.properties.id}<br>
+                        <button onclick="deleteFeature('lines-table', ${feature.properties.id})">Deletar</button>
+                    `);
             });
-            loadData();
         }
 
-        async function deletePoint(id) {
-            await fetch('/delete_point', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `id=${id}`
+        // Atualizar polígonos no mapa
+        function updatePolygons(features) {
+            Object.values(polygons).forEach(polygon => polygon.remove());
+            features.forEach(feature => {
+                const coordinates = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+                polygons[feature.properties.id] = L.polygon(coordinates, { color: 'green' }).addTo(map)
+                    .bindPopup(`
+                        <b>ID:</b> ${feature.properties.id}<br>
+                        <button onclick="deleteFeature('polygons-table', ${feature.properties.id})">Deletar</button>
+                    `);
             });
-            loadData();
         }
 
-        function highlightPoint(id) {
-            document.querySelectorAll('#points-table tbody tr').forEach(row => row.classList.remove('highlighted'));
-            const row = document.querySelector(`#points-table tbody tr td:first-child:contains('${id}')`).parentNode;
+        // Destacar um recurso no mapa
+        function highlightFeature(tableId, id) {
+            document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => row.classList.remove('highlighted'));
+            const row = document.querySelector(`#${tableId} tbody tr td:first-child:contains('${id}')`).parentNode;
             row.classList.add('highlighted');
-            if (markers[id]) {
+
+            if (tableId === 'points-table' && markers[id]) {
                 map.setView(markers[id].getLatLng(), 15);
                 markers[id].openPopup();
+            } else if (tableId === 'lines-table' && lines[id]) {
+                map.setView(lines[id].getBounds().getCenter(), 15);
+                lines[id].openPopup();
+            } else if (tableId === 'polygons-table' && polygons[id]) {
+                map.setView(polygons[id].getBounds().getCenter(), 15);
+                polygons[id].openPopup();
             }
         }
 
+        // Editar um recurso
+        async function editFeature(tableId, id) {
+            if (tableId === 'points-table') {
+                const name = prompt("Digite o novo nome do ponto:");
+                if (!name?.trim()) return alert("O nome do ponto é obrigatório!");
+                const obs = prompt("Digite uma nova observação:") || "";
+
+                await fetch('/update_point', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `id=${id}&name=${encodeURIComponent(name)}&obs=${encodeURIComponent(obs)}`
+                });
+            } else if (tableId === 'lines-table') {
+                const newCoordinates = prompt("Digite as novas coordenadas (formato JSON):");
+                if (!newCoordinates) return alert("Coordenadas inválidas!");
+
+                await fetch('/update_line', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `id=${id}&coordinates=${encodeURIComponent(newCoordinates)}`
+                });
+            } else if (tableId === 'polygons-table') {
+                const newCoordinates = prompt("Digite as novas coordenadas (formato JSON):");
+                if (!newCoordinates) return alert("Coordenadas inválidas!");
+
+                await fetch('/update_polygon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `id=${id}&coordinates=${encodeURIComponent(newCoordinates)}`
+                });
+            }
+            loadData();
+        }
+
+        // Deletar um recurso
+        async function deleteFeature(tableId, id) {
+            if (confirm("Tem certeza que deseja deletar este item?")) {
+                let endpoint = '';
+                if (tableId === 'points-table') endpoint = '/delete_point';
+                else if (tableId === 'lines-table') endpoint = '/delete_line';
+                else if (tableId === 'polygons-table') endpoint = '/delete_polygon';
+
+                await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `id=${id}`
+                });
+                loadData();
+            }
+        }
+
+        // Event listeners
         map.on('click', onMapClick);
         document.getElementById('basemap-thumbnail').addEventListener('click', e => {
             e.stopPropagation();
             toggleBasemap();
         });
 
+        // Interrompe a propagação do clique nos botões de geometria
         document.querySelectorAll('.geometry-thumbnail button').forEach(button => {
             button.addEventListener('click', e => e.stopPropagation());
         });
 
+        // Carregar dados iniciais
         loadData();
     </script>
 </body>
