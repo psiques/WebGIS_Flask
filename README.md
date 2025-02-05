@@ -1,6 +1,10 @@
 # Flask GeoJSON Geom Manager
 
-Este é um projeto simples utilizando Flask para gerenciar geometrias (pontos, linhas e polígonos) armazenadas em um arquivo GeoJSON. O aplicativo permite adicionar, obter, atualizar e deletar geometrias de um arquivo GeoJSON.
+Este aplicativo permite que os usuários interajam com o mapa, adicionem novos recursos (pontos, linhas, polígonos) e os gerenciem usando as tabelas de atributos. Aqui estão algumas coisas para abordar no código fornecido:
+## Pontos-chave
+-Modo de desenho: O modo de desenho alterna entre os modos de ponto, linha e polígono. Quando ativo, ele permite que os usuários desenhem essas geometrias no mapa. 
+-Gerenciamento de tabela de atributos: Há três tabelas separadas para pontos, linhas e polígonos, e cada recurso pode ser editado ou excluído. Os dados são carregados dinamicamente de um servidor, e cada ação (como adicionar ou excluir recursos) aciona atualizações no mapa e nas tabelas. 
+-Alternância do mapa base: Uma pequena miniatura permite que o usuário alterne entre duas camadas de base: OpenStreetMap e World Imagery da Esri.
 
 ## Requisitos
 
